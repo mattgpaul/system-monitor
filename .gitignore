@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+.pytest_cache/
+dist/
+.env
+test_telemetry_basic.py
+
+.vscode/
+.cursor/
+
+# Coverage artifacts
+.coverage
+coverage.xml
+htmlcov/

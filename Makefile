@@ -14,7 +14,6 @@ venv:  ## Create virtual environment if it doesn't exist
 dev: venv  ## Install dependencies and setup development environment
 	./venv/bin/pip install --upgrade pip
 	./venv/bin/pip install -e .[dev,agent,container]
-	./venv/bin/pre-commit install
 
 test: venv  ## Run all tests with coverage
 	./venv/bin/python -m pytest tests/ --cov=app --cov-report=term-missing --cov-report=html

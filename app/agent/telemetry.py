@@ -13,6 +13,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import psutil
+import strawberry
 
 # Force psutil evaluation
 _ = psutil.cpu_count()  # This ensures psutil is fully loaded
@@ -71,6 +72,7 @@ NVIDIA_DEVICES: Dict[str, str] = {
 }
 
 
+@strawberry.type
 @dataclass
 class CPUMetrics:
     """CPU telmetry data."""
@@ -82,6 +84,7 @@ class CPUMetrics:
     frequency: float  # MHz
 
 
+@strawberry.type
 @dataclass
 class GPUMetrics:
     """GPU telemetry data."""
@@ -95,6 +98,7 @@ class GPUMetrics:
     clock_speed: Optional[str]  # MHz
 
 
+@strawberry.type
 @dataclass
 class MemoryMetrics:
     """Memory telemetry data."""
@@ -107,6 +111,7 @@ class MemoryMetrics:
     disk_percent: float
 
 
+@strawberry.type
 @dataclass
 class NetworkMetrics:
     """Network telemetry data."""
@@ -121,6 +126,7 @@ class NetworkMetrics:
     speed_download: float  # Bytes/sec
 
 
+@strawberry.type
 @dataclass
 class SystemMetrics:
     """System information"""
@@ -133,6 +139,7 @@ class SystemMetrics:
     boot_time: float
 
 
+@strawberry.type
 @dataclass
 class TelemetryData:
     """Complete telemetry data structure"""

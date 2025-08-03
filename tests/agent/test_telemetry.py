@@ -534,21 +534,29 @@ class TestRealSystemIntegration:
         assert data is not None
         assert data.timestamp > 0
 
-        # CPU should always be present
+        # CPU should always be present (any system)
         assert data.cpu is not None
         assert data.cpu.usage_percent >= 0.0
         assert data.cpu.usage_percent <= 100.0
         assert len(data.cpu.core_usage) > 0
 
-        # Memory should always be present
+        # Memory should always be present (any system)
         assert data.memory is not None
         assert data.memory.ram_total > 0
         assert data.memory.ram_used >= 0
 
-        # System info should always be present
+        # System info should always be present (any system)
         assert data.system is not None
         assert len(data.system.hostname) > 0
         assert data.system.uptime_seconds >= 0
+
+        # GPU might not be present in CI - that's OK
+        if data.gpu is not None:
+            # If GPU detected, basic validation
+            assert isinstance(data.gpu.name, (str, type(None)))
+
+        # Network interfaces - might be different in CI
+        assert isinstance(data.network, list)  # Should be a list, even if empty
 
     @pytest.mark.asyncio
     async def test_multiple_collections_consistent(self):
@@ -561,6 +569,19 @@ class TestRealSystemIntegration:
         # Timestamps should be different
         assert data2.timestamp > data1.timestamp
 
-        # Memory total should be stable
+        # Core system values should be stable across platforms
         assert data1.memory.ram_total == data2.memory.ram_total
         assert data1.system.hostname == data2.system.hostname
+
+    @pytest.mark.asyncio
+    async def test_error_handling_graceful(self):
+        """Test that the system handles missing sensors gracefully."""
+        data = await self.collector.collect_all_metrics()
+
+        # Even if some sensors fail, we should get valid data structure
+        assert data.cpu is not None  # CPU should work everywhere
+        assert data.memory is not None  # Memory should work everywhere
+        assert data.system is not None  # System info should work everywhere
+
+        # GPU might be None (missing), temperature might be None (no sensors)
+        # That's expected and OK

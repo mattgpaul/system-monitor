@@ -1,0 +1,59 @@
+name: Integration CI
+
+on:
+  push:
+    branches-ignore:
+      - master
+
+jobs:
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y lm-sensors mesa-utils
+
+    - name: Setup development environment
+      run: make dev
+
+    - name: Run unit tests
+      run: make test
+
+    - name: Run integration tests
+      run: make pytest -- -m integration
+
+  auto-merge:
+    name: Auto-merge after delay
+    needs: integration-tests
+    runs-on: ubuntu-latest
+    if: github.actor == github.repository_owner
+
+    steps:
+    - name: Wait 5 minuts
+      run: sleep 300
+
+    - name: Create Pull Request and Auto-merge
+      env:
+        GITHUB_TOKEN: ${{ secres.GITHUB_TOKEN }}
+      run: |
+        # Create PR from current branch to master
+        gh pr create \
+          --title "Auto-merge: ${{ github.ref_name }}" \
+          --body "Automated merge after integration tests passed" \
+          --base master \
+          --head ${{ github.ref_name }}
+        
+        # Enable auto-merge
+        gh pr merge ${{ github.ref_name }} \
+          --auto \
+          --squash \

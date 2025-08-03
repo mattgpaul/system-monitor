@@ -250,11 +250,9 @@ class TelemetryCollector:
         return SystemMetrics(
             hostname=self._static_cache.get("hostname") or os.uname().nodename,
             os_name=self._static_cache.get("os_name") or self._get_os_name(),
-            kernel_version=self._static_cache.get("kernel_version")
-            or os.uname().release,
+            kernel_version=self._static_cache.get("kernel_version") or os.uname().release,
             uptime_seconds=int(
-                time.time()
-                - (self._static_cache.get("boot_time") or psutil.boot_time())
+                time.time() - (self._static_cache.get("boot_time") or psutil.boot_time())
             ),
             user=os.getlogin(),  # This changes if user switches, so don't cache
             boot_time=self._static_cache.get("boot_time") or psutil.boot_time(),
@@ -298,12 +296,8 @@ class TelemetryCollector:
 
             if interface_name in self.previous_network_stats and time_delta > 0:
                 prev_stats = self.previous_network_stats[interface_name]
-                speed_upload = (
-                    stats.bytes_sent - prev_stats["bytes_sent"]
-                ) / time_delta
-                speed_download = (
-                    stats.bytes_recv - prev_stats["bytes_recv"]
-                ) / time_delta
+                speed_upload = (stats.bytes_sent - prev_stats["bytes_sent"]) / time_delta
+                speed_download = (stats.bytes_recv - prev_stats["bytes_recv"]) / time_delta
 
             # Store current stats for next calculation
             self.previous_network_stats[interface_name] = {
@@ -343,9 +337,7 @@ class TelemetryCollector:
         """Collect CPU telemetry data."""
         try:
             # Use cached CPU name if available
-            cpu_name = (
-                self._static_cache.get("cpu_name") or await self._get_cpu_name_static()
-            )
+            cpu_name = self._static_cache.get("cpu_name") or await self._get_cpu_name_static()
 
             # Dynamic data (collect fresh each time)
             temperature = await self._get_cpu_temperature()
@@ -452,9 +444,7 @@ class TelemetryCollector:
                 # Look up device name based on vendor
                 if vendor_id == GPUVendor.AMD.value and device_id in AMD_DEVICES:
                     return f"AMD {AMD_DEVICES[device_id]}"
-                elif (
-                    vendor_id == GPUVendor.NVIDIA.value and device_id in NVIDIA_DEVICES
-                ):
+                elif vendor_id == GPUVendor.NVIDIA.value and device_id in NVIDIA_DEVICES:
                     return f"NVIDIA {NVIDIA_DEVICES[device_id]}"
                 else:
                     # Return vendor name with device ID if not in database
@@ -500,9 +490,7 @@ class TelemetryCollector:
             try:
                 with open(f"{base_path}/mem_info_vram_used", "r") as f:
                     vram_used_bytes = int(f.read().strip())
-                    gpu_data["vram_used"] = vram_used_bytes // (
-                        1024 * 1024
-                    )  # Convert to MB
+                    gpu_data["vram_used"] = vram_used_bytes // (1024 * 1024)  # Convert to MB
             except (FileNotFoundError, ValueError, PermissionError):
                 pass
 

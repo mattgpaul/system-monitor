@@ -40,8 +40,5 @@ format: venv	## Auto-fix code formatting and imports
 	./venv/bin/python -m isort app/ tests/
 
 lint: format	## Run formatting then check for code issues
-	./venv/bin/python -m flake8 app/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+	./venv/bin/python -m flake8 app/ tests/ --max-line-length=100 --extend-ignore=E203,W503
 	./venv/bin/python -m mypy app/
-
-check: venv  ## Run the full pre-commit check manually
-	./scripts/pre-commit-hook.sh

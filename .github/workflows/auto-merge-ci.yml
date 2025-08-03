@@ -44,7 +44,7 @@ jobs:
 
     - name: Create Pull Request and Auto-merge
       env:
-        GITHUB_TOKEN: ${{ secres.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         # Create PR from current branch to master
         gh pr create \
@@ -57,3 +57,4 @@ jobs:
         gh pr merge ${{ github.ref_name }} \
           --auto \
           --squash \
+          --delete-branch

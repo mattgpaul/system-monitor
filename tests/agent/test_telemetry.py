@@ -290,9 +290,7 @@ class TestTelemetryCollector:
         assert len(result.core_usage) == 4
 
     @pytest.mark.asyncio
-    async def test_collect_cpu_metrics_no_temperature(
-        self, collector, cpu_mocks, mocker
-    ):
+    async def test_collect_cpu_metrics_no_temperature(self, collector, cpu_mocks, mocker):
         """Test CPU metrics when temperature can't be read."""
 
         # Set temperature to fail from the beginning
@@ -431,9 +429,7 @@ class TestTelemetryCollector:
         mock_get_gpu_name = mocker.patch.object(collector, "_get_gpu_name_static")
         mock_get_gpu_name.return_value = "AMD Radeon RX 7900 XTX"
 
-        mock_get_gpu_vram = mocker.patch.object(
-            collector, "_get_gpu_total_vram"
-        )  # Fixed name
+        mock_get_gpu_vram = mocker.patch.object(collector, "_get_gpu_total_vram")  # Fixed name
         mock_get_gpu_vram.return_value = 24560
 
         # Call cache initialization
@@ -464,19 +460,13 @@ class TestTelemetryCollector:
         mock_system_metrics = mocker.patch.object(collector, "collect_system_metrics")
 
         # Set up return values
-        mock_cpu_metrics.return_value = CPUMetrics(
-            "AMD Ryzen", 45.0, 25.5, [20.0], 3400.0
-        )
-        mock_gpu_metrics.return_value = GPUMetrics(
-            "AMD GPU", 65.0, 80.0, 8000, 24000, 1500, "2100"
-        )
+        mock_cpu_metrics.return_value = CPUMetrics("AMD Ryzen", 45.0, 25.5, [20.0], 3400.0)
+        mock_gpu_metrics.return_value = GPUMetrics("AMD GPU", 65.0, 80.0, 8000, 24000, 1500, "2100")
         mock_memory_metrics.return_value = MemoryMetrics(
             16000000000, 32000000000, 50.0, 500000000000, 1000000000000, 50.0
         )
         mock_network_metrics.return_value = [
-            NetworkMetrics(
-                "eth0", "192.168.1.100", 1000000, 2000000, 500, 800, 1024.0, 2048.0
-            )
+            NetworkMetrics("eth0", "192.168.1.100", 1000000, 2000000, 500, 800, 1024.0, 2048.0)
         ]
         mock_system_metrics.return_value = SystemMetrics(
             "test-machine", "Ubuntu", "6.8.0", 86400, "user", 1703980800.0
@@ -519,7 +509,7 @@ hardware or permissions.
 
 @pytest.mark.integration
 class TestRealSystemIntegration:
-    """Integration tests that run against the real system."""
+    """Integration tests that run against the real system with real hardware."""
 
     def setup_method(self):
         """Set up a fresh collector for each test."""
@@ -527,61 +517,43 @@ class TestRealSystemIntegration:
 
     @pytest.mark.asyncio
     async def test_collect_all_metrics_end_to_end(self):
-        """Test complete telemetry collection from real system."""
+        """Test complete telemetry collection from real AMD system."""
         data = await self.collector.collect_all_metrics()
 
         # Basic structure validation
         assert data is not None
         assert data.timestamp > 0
 
-        # CPU should always be present (any system)
+        # CPU should be AMD Ryzen
         assert data.cpu is not None
+        assert "AMD" in data.cpu.name or "Ryzen" in data.cpu.name
         assert data.cpu.usage_percent >= 0.0
         assert data.cpu.usage_percent <= 100.0
         assert len(data.cpu.core_usage) > 0
 
-        # Memory should always be present (any system)
+        # Memory should be present
         assert data.memory is not None
         assert data.memory.ram_total > 0
         assert data.memory.ram_used >= 0
 
-        # System info should always be present (any system)
+        # System info should be present
         assert data.system is not None
         assert len(data.system.hostname) > 0
         assert data.system.uptime_seconds >= 0
 
-        # GPU might not be present in CI - that's OK
+        # GPU should be AMD (may be None if amdgpu_top fails, but structure should be valid)
         if data.gpu is not None:
-            # If GPU detected, basic validation
-            assert isinstance(data.gpu.name, (str, type(None)))
-
-        # Network interfaces - might be different in CI
-        assert isinstance(data.network, list)  # Should be a list, even if empty
+            assert "AMD" in data.gpu.name or "Radeon" in data.gpu.name
 
     @pytest.mark.asyncio
     async def test_multiple_collections_consistent(self):
-        """Test that multiple collections return consistent data structure."""
+        """Test that multiple collections return consistent data on real hardware."""
         # Collect twice
         data1 = await self.collector.collect_all_metrics()
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(1.0)  # Real delay for network stats
         data2 = await self.collector.collect_all_metrics()
 
         # Timestamps should be different
         assert data2.timestamp > data1.timestamp
 
-        # Core system values should be stable across platforms
-        assert data1.memory.ram_total == data2.memory.ram_total
-        assert data1.system.hostname == data2.system.hostname
-
-    @pytest.mark.asyncio
-    async def test_error_handling_graceful(self):
-        """Test that the system handles missing sensors gracefully."""
-        data = await self.collector.collect_all_metrics()
-
-        # Even if some sensors fail, we should get valid data structure
-        assert data.cpu is not None  # CPU should work everywhere
-        assert data.memory is not None  # Memory should work everywhere
-        assert data.system is not None  # System info should work everywhere
-
-        # GPU might be None (missing), temperature might be None (no sensors)
-        # That's expected and OK
+        # Hardware

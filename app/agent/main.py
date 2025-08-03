@@ -32,13 +32,9 @@ async def main() -> None:
             data = await collector.collect_all_metrics()
 
             # Simple display of key metrics
-            cpu_temp = (
-                f"{data.cpu.temperature:.1f}°C" if data.cpu.temperature else "N/A"
-            )
+            cpu_temp = f"{data.cpu.temperature:.1f}°C" if data.cpu.temperature else "N/A"
             gpu_temp = (
-                f"{data.gpu.temperature:.1f}°C"
-                if data.gpu and data.gpu.temperature
-                else "N/A"
+                f"{data.gpu.temperature:.1f}°C" if data.gpu and data.gpu.temperature else "N/A"
             )
 
             print(

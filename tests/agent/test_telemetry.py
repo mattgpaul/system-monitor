@@ -304,78 +304,80 @@ class TestTelemetryCollector:
         assert result.temperature is None
         assert result.usage_percent == 25.5
 
-    @pytest.mark.skip(reason="TODO: Fix method mocking")
     @pytest.mark.asyncio
     async def test_collect_gpu_metrics_success(self, collector, mocker):
         """Test GPU metrics collection with successful data."""
-        
-        # Mock the specific methods your code actually calls
-        mock_get_gpu_name = mocker.patch.object(collector, '_get_gpu_name_from_device_ids')
-        mock_get_gpu_name.return_value = "AMD Radeon RX 7900 XTX"
-        
-        mock_get_amdgpu_metrics = mocker.patch.object(collector, '_get_amdgpu_metrics')
+
+        # Set up the cache directly instead of mocking methods
+        collector._static_cache["gpu_name"] = "AMD Radeon RX 7900 XTX"
+        collector._static_cache["gpu_total_vram"] = 24560
+
+        # Mock _get_amdgpu_metrics with correct key names
+        mock_get_amdgpu_metrics = mocker.patch.object(collector, "_get_amdgpu_metrics")
         mock_get_amdgpu_metrics.return_value = {
-            'temperature': 65.0,
-            'usage_percent': 80.0,
-            'memory_used': 8000,
-            'fan_speed': 1500,
-            'clock_speed': '2100'
+            "temperature": 65.0,
+            "usage": 80.0,  # Note: 'usage' not 'usage_percent'
+            "vram_used": 8000,  # Note: 'vram_used' not 'memory_used'
+            "fan_speed": 1500,
+            "clock_speed": "2400",
         }
-        
+
+        # Call the method
         result = await collector.collect_gpu_metrics()
-        
-        # Verify results
-        assert isinstance(result, GPUMetrics)
+
+        # Verify the result
+        assert result is not None
         assert result.name == "AMD Radeon RX 7900 XTX"
         assert result.temperature == 65.0
-        assert result.usage_percent == 80.0
-        assert result.memory_used == 8000
+        assert result.usage_percent == 80.0  # Gets mapped from 'usage'
+        assert result.memory_used == 8000  # Gets mapped from 'vram_used'
+        assert result.memory_total == 24560  # From cache
         assert result.fan_speed == 1500
-        assert result.clock_speed == "2100"
+        assert result.clock_speed == "2400"
 
     @pytest.mark.asyncio
     async def test_collect_gpu_metrics_no_gpu(self, collector, mocker):
         """Test GPU metrics when no GPU is found."""
-        
+
         # Mock file reading to fail (no GPU files)
         mock_open = mocker.mock_open()
         mock_open.side_effect = FileNotFoundError("No GPU found")
         mocker.patch("builtins.open", mock_open)
-        
+
         result = await collector.collect_gpu_metrics()
-        
+
         # Should return None when no GPU found
         assert result is None
 
     @pytest.mark.asyncio
     async def test_collect_network_metrics(self, collector, mocker):
         """Test network metrics collection."""
-        
+
         # Mock psutil network functions
-        mock_net_io_counters = mocker.patch('psutil.net_io_counters')
-        
+        mock_net_io_counters = mocker.patch("psutil.net_io_counters")
+
         # Mock the IP address lookup method
-        mock_get_interface_ip = mocker.patch.object(collector, '_get_interface_ip')
+        mock_get_interface_ip = mocker.patch.object(collector, "_get_interface_ip")
         mock_get_interface_ip.return_value = "192.168.1.100"
-        
+
         # Mock network interface data
         mock_stats = mocker.MagicMock()
         mock_stats.bytes_sent = 1000000
         mock_stats.bytes_recv = 2000000
         mock_stats.packets_sent = 500
         mock_stats.packets_recv = 800
-        
+
         mock_net_io_counters.return_value = {
-            'eth0': mock_stats,
-            'lo': mock_stats  # Will be filtered out
+            "eth0": mock_stats,
+            "lo": mock_stats,  # Will be filtered out
         }
-        
+
         result = await collector.collect_network_metrics()
-        
+
         # Verify results
         assert isinstance(result, list)
         assert len(result) == 1  # Only eth0, lo filtered out
-        
+
         network = result[0]
         assert isinstance(network, NetworkMetrics)
         assert network.interface == "eth0"
@@ -386,31 +388,30 @@ class TestTelemetryCollector:
     @pytest.mark.asyncio
     async def test_collect_system_metrics(self, collector, mocker):
         """Test system metrics collection."""
-        
+
         # Mock os functions
-        mock_uname = mocker.patch('os.uname')
+        mock_uname = mocker.patch("os.uname")
         mock_uname.return_value = mocker.MagicMock(
-            nodename="test-machine",
-            release="6.8.0-63-generic"
+            nodename="test-machine", release="6.8.0-63-generic"
         )
-        
-        mock_getlogin = mocker.patch('os.getlogin')
+
+        mock_getlogin = mocker.patch("os.getlogin")
         mock_getlogin.return_value = "testuser"
-        
+
         # Mock psutil functions
-        mock_boot_time = mocker.patch('psutil.boot_time')
+        mock_boot_time = mocker.patch("psutil.boot_time")
         mock_boot_time.return_value = 1703980800.0
-        
+
         # Mock time.time for uptime calculation
-        mock_time = mocker.patch('time.time')
+        mock_time = mocker.patch("time.time")
         mock_time.return_value = 1703980800.0 + 86400  # 1 day later
-        
+
         # Mock the OS name method
-        mock_get_os_name = mocker.patch.object(collector, '_get_os_name')
+        mock_get_os_name = mocker.patch.object(collector, "_get_os_name")
         mock_get_os_name.return_value = "Ubuntu 22.04"
-        
+
         result = await collector.collect_system_metrics()
-        
+
         # Verify results
         assert isinstance(result, SystemMetrics)
         assert result.hostname == "test-machine"
@@ -420,30 +421,31 @@ class TestTelemetryCollector:
         assert result.user == "testuser"
         assert result.boot_time == 1703980800.0
 
-    @pytest.mark.skip(reason="TODO: Fix method mocking")
     @pytest.mark.asyncio
     async def test_caching_system(self, collector, mocker):
         """Test that static data is cached properly."""
-        
-        # Mock the static data collection methods
-        mock_get_gpu_name = mocker.patch.object(collector, '_get_gpu_name_static')
+
+        # Mock the static data collection methods (correct names)
+        mock_get_gpu_name = mocker.patch.object(collector, "_get_gpu_name_static")
         mock_get_gpu_name.return_value = "AMD Radeon RX 7900 XTX"
-        
-        mock_get_gpu_vram = mocker.patch.object(collector, '_get_gpu_total_vram_static')
+
+        mock_get_gpu_vram = mocker.patch.object(
+            collector, "_get_gpu_total_vram"
+        )  # Fixed name
         mock_get_gpu_vram.return_value = 24560
-        
+
         # Call cache initialization
         await collector._ensure_cache_initialized()
-        
+
         # Verify cache was populated
-        assert collector._static_cache['gpu_name'] == "AMD Radeon RX 7900 XTX"
-        assert collector._static_cache['gpu_total_vram'] == 24560
-        
+        assert collector._static_cache["gpu_name"] == "AMD Radeon RX 7900 XTX"
+        assert collector._static_cache["gpu_total_vram"] == 24560
+
         # Call again - should use cache, not call methods again
         mock_get_gpu_name.reset_mock()
         mock_get_gpu_vram.reset_mock()
         await collector._ensure_cache_initialized()
-        
+
         # Verify methods weren't called again (cache was used)
         mock_get_gpu_name.assert_not_called()
         mock_get_gpu_vram.assert_not_called()
@@ -451,30 +453,42 @@ class TestTelemetryCollector:
     @pytest.mark.asyncio
     async def test_collect_all_metrics_integration(self, collector, mocker):
         """Test that collect_all_metrics works with all components."""
-        
+
         # Mock all the subsystems
-        mock_cpu_metrics = mocker.patch.object(collector, 'collect_cpu_metrics')
-        mock_gpu_metrics = mocker.patch.object(collector, 'collect_gpu_metrics')
-        mock_memory_metrics = mocker.patch.object(collector, 'collect_memory_metrics')
-        mock_network_metrics = mocker.patch.object(collector, 'collect_network_metrics')
-        mock_system_metrics = mocker.patch.object(collector, 'collect_system_metrics')
-        
+        mock_cpu_metrics = mocker.patch.object(collector, "collect_cpu_metrics")
+        mock_gpu_metrics = mocker.patch.object(collector, "collect_gpu_metrics")
+        mock_memory_metrics = mocker.patch.object(collector, "collect_memory_metrics")
+        mock_network_metrics = mocker.patch.object(collector, "collect_network_metrics")
+        mock_system_metrics = mocker.patch.object(collector, "collect_system_metrics")
+
         # Set up return values
-        mock_cpu_metrics.return_value = CPUMetrics("AMD Ryzen", 45.0, 25.5, [20.0], 3400.0)
-        mock_gpu_metrics.return_value = GPUMetrics("AMD GPU", 65.0, 80.0, 8000, 24000, 1500, "2100")
-        mock_memory_metrics.return_value = MemoryMetrics(16000000000, 32000000000, 50.0, 500000000000, 1000000000000, 50.0)
-        mock_network_metrics.return_value = [NetworkMetrics("eth0", "192.168.1.100", 1000000, 2000000, 500, 800, 1024.0, 2048.0)]
-        mock_system_metrics.return_value = SystemMetrics("test-machine", "Ubuntu", "6.8.0", 86400, "user", 1703980800.0)
-        
+        mock_cpu_metrics.return_value = CPUMetrics(
+            "AMD Ryzen", 45.0, 25.5, [20.0], 3400.0
+        )
+        mock_gpu_metrics.return_value = GPUMetrics(
+            "AMD GPU", 65.0, 80.0, 8000, 24000, 1500, "2100"
+        )
+        mock_memory_metrics.return_value = MemoryMetrics(
+            16000000000, 32000000000, 50.0, 500000000000, 1000000000000, 50.0
+        )
+        mock_network_metrics.return_value = [
+            NetworkMetrics(
+                "eth0", "192.168.1.100", 1000000, 2000000, 500, 800, 1024.0, 2048.0
+            )
+        ]
+        mock_system_metrics.return_value = SystemMetrics(
+            "test-machine", "Ubuntu", "6.8.0", 86400, "user", 1703980800.0
+        )
+
         result = await collector.collect_all_metrics()
-        
+
         # Verify all methods were called
         mock_cpu_metrics.assert_called_once()
         mock_gpu_metrics.assert_called_once()
         mock_memory_metrics.assert_called_once()
         mock_network_metrics.assert_called_once()
         mock_system_metrics.assert_called_once()
-        
+
         # Verify the result structure
         assert result.cpu.name == "AMD Ryzen"
         assert result.gpu.name == "AMD GPU"
@@ -486,7 +500,7 @@ class TestTelemetryCollector:
     @pytest.mark.asyncio
     async def test_debug_methods(self, collector):
         """Debug to see what methods exist."""
-        methods = [method for method in dir(collector) if not method.startswith('__')]
+        methods = [method for method in dir(collector) if not method.startswith("__")]
         print("Available methods:")
         for method in sorted(methods):
             print(f"  {method}")

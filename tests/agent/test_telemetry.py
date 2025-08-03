@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from app.agent.telemetry import (
@@ -504,3 +506,61 @@ class TestTelemetryCollector:
         print("Available methods:")
         for method in sorted(methods):
             print(f"  {method}")
+
+
+"""
+Integration tests that run against the real system.
+
+These tests verify that telemetry collection works on actual hardware
+without mocking. They may fail in CI environments that lack certain
+hardware or permissions.
+"""
+
+
+@pytest.mark.integration
+class TestRealSystemIntegration:
+    """Integration tests that run against the real system."""
+
+    def setup_method(self):
+        """Set up a fresh collector for each test."""
+        self.collector = TelemetryCollector()
+
+    @pytest.mark.asyncio
+    async def test_collect_all_metrics_end_to_end(self):
+        """Test complete telemetry collection from real system."""
+        data = await self.collector.collect_all_metrics()
+
+        # Basic structure validation
+        assert data is not None
+        assert data.timestamp > 0
+
+        # CPU should always be present
+        assert data.cpu is not None
+        assert data.cpu.usage_percent >= 0.0
+        assert data.cpu.usage_percent <= 100.0
+        assert len(data.cpu.core_usage) > 0
+
+        # Memory should always be present
+        assert data.memory is not None
+        assert data.memory.ram_total > 0
+        assert data.memory.ram_used >= 0
+
+        # System info should always be present
+        assert data.system is not None
+        assert len(data.system.hostname) > 0
+        assert data.system.uptime_seconds >= 0
+
+    @pytest.mark.asyncio
+    async def test_multiple_collections_consistent(self):
+        """Test that multiple collections return consistent data structure."""
+        # Collect twice
+        data1 = await self.collector.collect_all_metrics()
+        await asyncio.sleep(0.5)
+        data2 = await self.collector.collect_all_metrics()
+
+        # Timestamps should be different
+        assert data2.timestamp > data1.timestamp
+
+        # Memory total should be stable
+        assert data1.memory.ram_total == data2.memory.ram_total
+        assert data1.system.hostname == data2.system.hostname

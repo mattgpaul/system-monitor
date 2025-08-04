@@ -5,7 +5,7 @@ This module creates the FastAPI app with GraphQL endpoint
 for serving system telemetry data.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, Request
 from strawberry.fastapi import GraphQLRouter
@@ -14,12 +14,23 @@ from app.agent import __version__
 from app.agent.schema import schema
 from app.agent.telemetry import TelemetryCollector
 
-collector_instance = TelemetryCollector()
+collector_instance: Optional[TelemetryCollector] = None
+
+
+async def get_collector() -> TelemetryCollector:
+    """Get or create the global collector instance using lazy initialization."""
+    global collector_instance
+    if collector_instance is None:
+        print("Initializing telemetry collector with static cache...")
+        collector_instance = await TelemetryCollector.create()
+        print("Collector ready!")
+    return collector_instance
 
 
 async def get_context(request: Request) -> Dict[str, Any]:
     """Provide context for GraphQL resolvers."""
-    return {"collector": collector_instance}
+    collector = await get_collector()
+    return {"collector": collector}
 
 
 app = FastAPI(

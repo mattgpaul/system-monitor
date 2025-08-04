@@ -103,11 +103,11 @@ class GPUMetrics:
 class MemoryMetrics:
     """Memory telemetry data."""
 
-    ram_used: int  # Bytes
-    ram_total: int
+    ram_used: float  # Bytes
+    ram_total: float
     ram_percent: float
-    disk_used: int
-    disk_total: int
+    disk_used: float
+    disk_total: float
     disk_percent: float
 
 
@@ -159,6 +159,9 @@ class TelemetryCollector:
         self.previous_network_stats: Dict[str, Dict] = {}
         self.previous_time = time.time()
 
+        psutil.cpu_percent()
+        psutil.cpu_percent(percpu=True)
+
         # Static data cache
         self._static_cache: Dict[str, Any] = {
             "cpu_name": None,
@@ -172,6 +175,17 @@ class TelemetryCollector:
             "kernel_version": None,
             "boot_time": None,
         }
+
+    @classmethod
+    async def create(cls) -> "TelemetryCollector":
+        """
+        Factory method to create a fully initialized TelemetryCollector.
+
+        This method ensures static cache data is loaded before the first use.
+        """
+        collector = cls()
+        await collector._ensure_cache_initialized()
+        return collector
 
     async def _ensure_cache_initialized(self) -> None:
         """Ensure static cache is initialized."""
@@ -348,8 +362,8 @@ class TelemetryCollector:
 
             # Dynamic data (collect fresh each time)
             temperature = await self._get_cpu_temperature()
-            cpu_percent = psutil.cpu_percent(interval=1)
-            core_usage = psutil.cpu_percent(interval=1, percpu=True)
+            cpu_percent = psutil.cpu_percent(interval=None)
+            core_usage = psutil.cpu_percent(interval=None, percpu=True)
 
             cpu_freq = psutil.cpu_freq()
             frequency = cpu_freq.current if cpu_freq else 0.0
@@ -404,7 +418,7 @@ class TelemetryCollector:
         """Collect GPU telemetry data using direct file reading."""
         try:
             # Use cached GPU name and total VRAM
-            gpu_name = self._static_cache.get("gpu_name", "Unknown GPU")
+            gpu_name = self._static_cache.get("gpu_name") or "Unknown GPU"
             total_vram = self._static_cache.get("gpu_total_vram") or 24560
 
             # Get dynamic GPU metrics

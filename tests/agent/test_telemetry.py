@@ -240,6 +240,19 @@ class TestTelemetryCollector:
         }
 
     @pytest.mark.asyncio
+    async def test_telemetry_collector_factory_pattern(self):
+        """Test that factory method creates initialized collector."""
+        collector = await TelemetryCollector.create()
+
+        # Should have static cache initialized
+        assert collector._static_cache.get("cpu_name") is not None
+        assert collector._static_cache.get("gpu_name") is not None
+
+        # Should be ready for immediate use
+        cpu_data = await collector.collect_cpu_metrics()
+        assert cpu_data.name != "Unknown"  # Should have real CPU name
+
+    @pytest.mark.asyncio
     async def test_collect_memory_metrics(self, collector, mocker):
         """Test memory metrics collectio nwith mocked psutil."""
 

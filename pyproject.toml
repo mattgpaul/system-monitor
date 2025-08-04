@@ -44,6 +44,7 @@ agent = [
     "psutil>=5.9",
     "aiohttp>=3.8",
     "strawberry-graphql[fastapi]>=0.216.0",
+    "python-dotenv>=1.0.0",
 ]
 container = [
     # Container-specific dependencies

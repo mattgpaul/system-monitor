@@ -29,7 +29,7 @@ app = FastAPI(
 )
 
 # Add GraphQL endpoint with collector context
-graphql_app = GraphQLRouter(schema, context_getter=get_context)
+graphql_app = GraphQLRouter(schema, context_getter=get_context)  # type: ignore[arg-type]
 app.include_router(graphql_app, prefix="/graphql")
 
 

@@ -13,12 +13,17 @@ from dotenv import load_dotenv
 
 from app.agent.api import app
 from app.agent.telemetry import TelemetryCollector
+from app.core.logging_config import setup_logging
+import logging
+
+logger = logging.getLogger("telemetry_agent.main")
 
 load_dotenv()
 
 
-async def console_mode() -> None:
+async def console_mode(log_level: str = "INFO") -> None:
     """Run the telemetry agent."""
+    setup_logging(level=log_level)
     collector = await TelemetryCollector.create()
     running = True
 
@@ -63,10 +68,18 @@ async def console_mode() -> None:
     print("Shutdown complete.")
 
 
-def server_mode() -> None:
+def server_mode(log_level: str = "INFO") -> None:
     """Run GraphQL API server mode."""
+
+    setup_logging(level=log_level)
+
+    # Get configuration from environment
     tailscale_ip = os.getenv("TAILSCALE_IP", "127.0.0.1")
     port = int(os.getenv("BIND_PORT", "8000"))
+
+    logger.info("Starting System Telemetry Agent Server")
+    logger.info("Configuration: IP=%s, Port=%d", tailscale_ip, port)
+
     print("Starting System Telemetry Agent Server...")
     print("Configuration:")
     print(f"   • Tailscale IP: {tailscale_ip}")
@@ -80,13 +93,19 @@ def server_mode() -> None:
     print("Ready for remote polling via Tailscale")
     print("Press Ctrl+C to stop")
 
-    uvicorn.run(
-        app,
-        host=tailscale_ip,
-        port=port,
-        reload=False,
-        access_log=True,
-    )
+    try:
+        uvicorn.run(
+            app,
+            host=tailscale_ip,
+            port=port,
+            reload=False,
+            access_log=True,
+        )
+    except KeyboardInterrupt:
+        logger.info("Server shutdown requested by user")
+    except Exception as e:
+        logger.error("Server failed to start: %s", str(e))
+        raise
 
 
 def main() -> None:
@@ -113,13 +132,20 @@ def main() -> None:
         "--server", action="store_true", help="Run GraphQL API server for remote polling"
     )
 
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default="INFO",
+        help="Set logging level (default: INFO)"
+    )
+
     args = parser.parse_args()
 
     try:
         if args.server:
-            server_mode()
+            server_mode(log_level=args.log_level)
         else:
-            asyncio.run(console_mode())
+            asyncio.run(console_mode(log_level=args.log_level))
     except KeyboardInterrupt:
         print("\nExiting...")
 

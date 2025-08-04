@@ -5,15 +5,19 @@ This module collects system metrics in a structured format
 """
 
 import asyncio
+import json
 import os
 import subprocess
 import time
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import psutil
 import strawberry
+
+logger = logging.getLogger("telemetry_agent.telemetry")
 
 # Force psutil evaluation
 _ = psutil.cpu_count()  # This ensures psutil is fully loaded
@@ -183,8 +187,15 @@ class TelemetryCollector:
 
         This method ensures static cache data is loaded before the first use.
         """
+        logger.info("Initializing static cache for telemetry collector")
+        start_time = time.time()
+        
         collector = cls()
         await collector._ensure_cache_initialized()
+
+        init_time = (time.time() - start_time) * 1000
+        logger.info("Static cache initialized in %.2fms", init_time)
+
         return collector
 
     async def _ensure_cache_initialized(self) -> None:
@@ -375,7 +386,8 @@ class TelemetryCollector:
                 core_usage=core_usage,
                 frequency=frequency,
             )
-        except Exception:
+        except Exception as e:
+            logger.error("CPU metrics collection failed: %s", str(e))
             return CPUMetrics(
                 name="Unknown",
                 temperature=None,
@@ -436,7 +448,8 @@ class TelemetryCollector:
                 )
 
             return None
-        except Exception:
+        except Exception as e:
+            logger.error("GPU metrics collection failed: %s", str(e))
             return None
 
     async def _get_gpu_name_from_device_ids(self) -> str:

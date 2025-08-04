@@ -5,11 +5,10 @@ This module collects system metrics in a structured format
 """
 
 import asyncio
-import json
+import logging
 import os
 import subprocess
 import time
-import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -189,7 +188,7 @@ class TelemetryCollector:
         """
         logger.info("Initializing static cache for telemetry collector")
         start_time = time.time()
-        
+
         collector = cls()
         await collector._ensure_cache_initialized()
 

@@ -5,12 +5,11 @@ This module defines the GraphQL queries that clients can use
 to fetch telemetry data from the system.
 """
 
-import strawberry
 import logging
-from typing import Optional, List
-from strawberry.types import Info
+from typing import List, Optional
 
-logger = logging.getLogger("telemetry_agent.schema")
+import strawberry
+from strawberry.types import Info
 
 from app.agent.telemetry import (
     CPUMetrics,
@@ -21,6 +20,8 @@ from app.agent.telemetry import (
     TelemetryCollector,
     TelemetryData,
 )
+
+logger = logging.getLogger("telemetry_agent.schema")
 
 
 @strawberry.type

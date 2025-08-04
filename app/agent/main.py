@@ -4,6 +4,7 @@ Main application entry point for the telemetry agent.
 
 import argparse
 import asyncio
+import logging
 import os
 import signal
 from typing import Any
@@ -14,13 +15,13 @@ from dotenv import load_dotenv
 from app.agent.api import app
 from app.agent.telemetry import TelemetryCollector
 from app.core.logging_config import setup_logging
-import logging
 
 logger = logging.getLogger("telemetry_agent.main")
 
 load_dotenv()
 
 load_dotenv()
+
 
 async def console_mode(log_level: str = "INFO") -> None:
     """Run the telemetry agent."""
@@ -137,7 +138,7 @@ def main() -> None:
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         default="INFO",
-        help="Set logging level (default: INFO)"
+        help="Set logging level (default: INFO)",
     )
 
     args = parser.parse_args()

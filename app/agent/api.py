@@ -5,8 +5,8 @@ This module creates the FastAPI app with GraphQL endpoint
 for serving system telemetry data.
 """
 
-from typing import Dict, Any, Optional
 import logging
+from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, Request
 from strawberry.fastapi import GraphQLRouter

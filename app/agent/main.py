@@ -20,6 +20,7 @@ logger = logging.getLogger("telemetry_agent.main")
 
 load_dotenv()
 
+load_dotenv()
 
 async def console_mode(log_level: str = "INFO") -> None:
     """Run the telemetry agent."""

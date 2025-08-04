@@ -19,7 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: System :: Monitoring",
 ]
-dependencis = [
+dependencies = [
     # Core dependencies will be added later
 ]
 dynamic = ["version"]
@@ -34,7 +34,7 @@ dev = [
     "isort>=5.12.0",
     "flake8>=6.0",
     "mypy>=1.0",
-    "pre-commit>=3.0",
+    "httpx>=0.25.0",
 ]
 agent = [
     # Agent-specific dependencies
@@ -43,6 +43,7 @@ agent = [
     "pydantic>=2.0",
     "psutil>=5.9",
     "aiohttp>=3.8",
+    "strawberry-graphql[fastapi]>=0.216.0",
 ]
 container = [
     # Container-specific dependencies

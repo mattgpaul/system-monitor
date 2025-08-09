@@ -8,7 +8,13 @@ to bypass URL routing issues during testing.
 import json
 import os
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
+import django
+from django.test import RequestFactory, TestCase
+from rest_framework import status
+
+from app.server.monitoring.views import health_check, receive_telemetry
 
 # Add the server directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../app/server"))
@@ -16,15 +22,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../app/server"))
 # Configure Django settings
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "server_config.settings")
 
-import django
-from django.test import RequestFactory, TestCase
-from rest_framework import status
-from rest_framework.test import force_authenticate
-
 # Initialize Django
 django.setup()
-
-from app.server.monitoring.views import health_check, receive_telemetry
 
 
 class TestHealthCheckView(TestCase):

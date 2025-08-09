@@ -9,8 +9,12 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 
+import django
 import httpx
 import pytest
+from django.test import override_settings
+
+from app.server.monitoring.tasks import poll_agent_telemetry
 
 # Add the server directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../app/server"))
@@ -18,14 +22,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../app/server"))
 # Configure Django settings with correct path
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "server_config.settings")
 
-import django
-from django.conf import settings
-from django.test import override_settings
-
 # Initialize Django
 django.setup()
-
-from app.server.monitoring.tasks import poll_agent_telemetry
 
 
 @pytest.fixture

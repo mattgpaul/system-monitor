@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task
-def poll_agent_telemetry():
+def poll_agent_telemetry() -> dict:
     """
     Poll the agent for current telemetry data via GraphQL.
     This task runs every second (1Hz) to collect system metrics.

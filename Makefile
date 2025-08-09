@@ -67,4 +67,16 @@ format: venv	## Auto-fix code formatting and imports
 
 lint: format	## Run formatting then check for code issues
 	./venv/bin/python -m flake8 app/ tests/ --max-line-length=100 --extend-ignore=E203,W503
-	./venv/bin/python -m mypy app/
+
+lint-fix: venv  ## Auto-fix linting issues where possible
+	./venv/bin/python -m autoflake --remove-all-unused-imports --remove-unused-variables --recursive --in-place app/ tests/
+	./venv/bin/python -m black app/ tests/
+	./venv/bin/python -m isort app/ tests/
+	@echo "Auto-fixes applied! Running final check..."
+	./venv/bin/python -m flake8 app/ tests/ --max-line-length=100 --extend-ignore=E203,W503,E402
+
+lint-all: lint lint-types  ## Run all linting including type checking
+
+ci: venv  ## Install dependencies for CI (no environment setup)
+	./venv/bin/pip install --upgrade pip
+	./venv/bin/pip install -e .[dev,agent,server]

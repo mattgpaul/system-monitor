@@ -34,6 +34,7 @@ dev = [
     "isort>=5.12.0",
     "flake8>=6.0",
     "mypy>=1.0",
+    "autoflake>=2.0.0",
     "httpx>=0.25.0",
 ]
 agent = [
@@ -140,6 +141,9 @@ disable_error_code = ["no-any-return", "assignment", "index"]
 module = [
     "psutil.*",
     "aiohttp.*",
+    "django.*",  # Add Django
+    "rest_framework.*",  # Add DRF
+    "celery.*",  # Add Celery
 ]
 ignore_missing_imports = true
 

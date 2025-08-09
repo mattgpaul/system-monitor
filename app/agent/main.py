@@ -21,7 +21,7 @@ logger = logging.getLogger("telemetry_agent.main")
 
 
 # Load environment variables from dev.env or prod.env (same as server)
-def load_environment():
+def load_environment() -> None:
     """Load environment variables using the same logic as the server."""
     # Get the project root (three levels up from this file)
     project_root = Path(__file__).resolve().parent.parent.parent

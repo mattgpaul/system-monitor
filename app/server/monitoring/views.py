@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 @api_view(["GET"])
-def health_check(request):
+def health_check(request) -> None:
     """
     SImple health check endpoint to verify the server is running.
     """
@@ -26,7 +26,7 @@ def health_check(request):
 
 
 @api_view(["POST"])
-def receive_telemetry(request):
+def receive_telemetry(request) -> None:
     """
     Receive telemetry data from monitoring agents.
     """

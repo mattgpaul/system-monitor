@@ -5,7 +5,6 @@ Tests the query file loading, caching, and error handling
 for the monitoring GraphQL queries.
 """
 
-from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest

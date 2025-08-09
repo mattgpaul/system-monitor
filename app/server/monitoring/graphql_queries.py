@@ -3,7 +3,6 @@ GraphQL queries for polling agent telemetry data.
 Loads queries from separate .graphql files for better maintainability.
 """
 
-import os
 from pathlib import Path
 from typing import Dict
 
@@ -41,7 +40,7 @@ def load_query_file(filename: str) -> str:
 _QUERIES_CACHE: Dict[str, str] = {}
 
 
-def _load_all_queries():
+def _load_all_queries() -> None:
     """Load all .graphql files into the cache."""
     if not QUERIES_DIR.exists():
         raise FileNotFoundError(f"Queries directory not found: {QUERIES_DIR}")
@@ -102,7 +101,7 @@ def get_available_queries() -> list:
     return list(QUERY_TYPES.keys())
 
 
-def reload_queries():
+def reload_queries() -> None:
     """
     Reload all queries from disk (useful for development).
     """

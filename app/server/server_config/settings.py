@@ -6,7 +6,6 @@ Network-agnostic configuration supporting multiple deployment scenarios.
 import os
 from pathlib import Path
 
-from celery.schedules import crontab
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.

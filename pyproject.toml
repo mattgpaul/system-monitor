@@ -46,12 +46,15 @@ agent = [
     "strawberry-graphql[fastapi]>=0.216.0",
     "python-dotenv>=1.0.0",
 ]
-container = [
-    # Container-specific dependencies
-    "django>=4.2",
-    "redis>=5.0",
-    "influxdb-client>=1.38",
-    "celery>=5.3",
+server = [
+  "django>=4.2",
+  "djangorestframework>=3.14.0",
+  "django-cors-headers>=4.0.0",
+  "httpx>=0.25.0",
+  "influxdb-client>=1.38.0",
+  "redis>=4.5.0",
+  "python-dotenv>=1.0.0",
+  "celery>=5.3.0",
 ]
 
 [project.urls]

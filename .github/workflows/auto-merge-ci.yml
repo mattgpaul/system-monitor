@@ -18,8 +18,8 @@ jobs:
       with:
         python-version: '3.12'
     
-    - name: Setup development environment
-      run: make dev
+    - name: Install dependencies
+      run: make ci
     
     - name: Run linting
       run: make lint

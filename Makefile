@@ -76,3 +76,7 @@ lint-fix: venv  ## Auto-fix linting issues where possible
 	./venv/bin/python -m flake8 app/ tests/ --max-line-length=100 --extend-ignore=E203,W503,E402
 
 lint-all: lint lint-types  ## Run all linting including type checking
+
+ci: venv  ## Install dependencies for CI (no environment setup)
+	./venv/bin/pip install --upgrade pip
+	./venv/bin/pip install -e .[dev,agent,server]

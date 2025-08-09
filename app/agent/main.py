@@ -1,6 +1,7 @@
 """
 Main application entry point for the telemetry agent.
 """
+
 import argparse
 import asyncio
 import logging
@@ -18,27 +19,29 @@ from app.core.logging_config import setup_logging
 
 logger = logging.getLogger("telemetry_agent.main")
 
+
 # Load environment variables from dev.env or prod.env (same as server)
 def load_environment():
     """Load environment variables using the same logic as the server."""
     # Get the project root (three levels up from this file)
     project_root = Path(__file__).resolve().parent.parent.parent
-    
+
     # Load environment variables from dev.env or prod.env
     env_type = os.getenv("ENV", "dev")
-    env_file = project_root / f'{env_type}.env'
-    
+    env_file = project_root / f"{env_type}.env"
+
     if env_file.exists():
         load_dotenv(env_file)
         print(f"Agent loaded environment from {env_file}")
     else:
         # Fallback to .env file if it exists
-        fallback_env = project_root / '.env'
+        fallback_env = project_root / ".env"
         if fallback_env.exists():
             load_dotenv(fallback_env)
             print(f"Agent loaded fallback environment from {fallback_env}")
         else:
             print("Agent: No environment file found, using defaults")
+
 
 # Load environment at module import
 load_environment()

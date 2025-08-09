@@ -3,13 +3,13 @@ query GetBasicTelemetry {
         timestamp
         cpu {
             name
-            usage_percent
+            usagePercent
             frequency
         }
         memory {
-            ram_used
-            ram_total
-            ram_percent
+            ramUsed
+            ramTotal
+            ramPercent
         }
         system {
             hostname

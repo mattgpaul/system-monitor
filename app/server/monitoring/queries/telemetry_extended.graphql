@@ -4,44 +4,44 @@ query GetExtendedTelemetry {
         cpu {
             name
             temperature
-            usage_percent
-            core_usage
+            usagePercent
+            coreUsage
             frequency
         }
         gpu {
             name
             temperature
-            usage_percent
-            memory_used
-            memory_total
-            fan_speed
-            clock_speed
+            usagePercent
+            memoryUsed
+            memoryTotal
+            fanSpeed
+            clockSpeed
         }
         memory {
-            ram_used
-            ram_total
-            ram_percent
-            disk_used
-            disk_total
-            disk_percent
+            ramUsed
+            ramTotal
+            ramPercent
+            diskUsed
+            diskTotal
+            diskPercent
         }
         network {
             interface
-            ip_address
-            bytes_sent
-            bytes_received
-            packets_sent
-            packets_received
-            speed_upload
-            speed_download
+            ipAddress
+            bytesSent
+            bytesReceived
+            packetsSent
+            packetsReceived
+            speedUpload
+            speedDownload
         }
         system {
             hostname
-            os_name
-            kernel_version
-            uptime_seconds
+            osName
+            kernelVersion
+            uptimeSeconds
             user
-            boot_time
+            bootTime
         }
     }
 }

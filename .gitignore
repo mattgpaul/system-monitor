@@ -2,7 +2,9 @@ venv/
 __pycache__/
 .pytest_cache/
 dist/
-.env
+*.env
+*.key
+*.pem
 test_telemetry_basic.py
 
 .vscode/

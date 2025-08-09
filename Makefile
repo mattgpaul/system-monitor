@@ -13,7 +13,34 @@ venv:  ## Create virtual environment if it doesn't exist
 
 dev: venv  ## Install dependencies and setup development environment
 	./venv/bin/pip install --upgrade pip
-	./venv/bin/pip install -e .[dev,agent,container]
+	./venv/bin/pip install -e .[dev,agent,server]
+	@chmod +x scripts/start-dev.sh
+	@./scripts/start-dev.sh
+
+dev-agent: venv  ## Start only the agent in development mode
+	ENV=dev ./venv/bin/python app/agent/main.py --server
+
+dev-server: venv  ## Start only the Django server in development mode
+	ENV=dev ./venv/bin/python app/server/manage.py runserver; \
+
+dev-test-poll: venv  ## Test server polling task against running agent
+	@chmod +x scripts/test-poll.py
+	@ENV=dev ./venv/bin/python scripts/test-poll.py
+
+dev-test: venv  ## Run tests in development environment
+	ENV=dev ./venv/bin/python -m pytest tests/ --cov=app --cov-report=term-missing --cov-report=html
+
+# Production targets
+prod-agent: venv  ## Start agent in production mode
+	ENV=prod ./venv/bin/python app/agent/main.py --server
+
+prod-server: venv  ## Start server in production mode
+	@if [ -f "prod.env" ]; then \
+		source prod.env && ENV=prod ./venv/bin/python app/server/manage.py runserver $$SERVER_HOST:$$SERVER_PORT; \
+	else \
+		ENV=prod ./venv/bin/python app/server/manage.py runserver; \
+	fi
+
 
 test: venv  ## Run all tests with coverage
 	./venv/bin/python -m pytest tests/ --cov=app --cov-report=term-missing --cov-report=html

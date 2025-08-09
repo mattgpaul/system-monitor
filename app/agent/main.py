@@ -7,6 +7,7 @@ import asyncio
 import logging
 import os
 import signal
+from pathlib import Path
 from typing import Any
 
 import uvicorn
@@ -18,9 +19,32 @@ from app.core.logging_config import setup_logging
 
 logger = logging.getLogger("telemetry_agent.main")
 
-load_dotenv()
 
-load_dotenv()
+# Load environment variables from dev.env or prod.env (same as server)
+def load_environment():
+    """Load environment variables using the same logic as the server."""
+    # Get the project root (three levels up from this file)
+    project_root = Path(__file__).resolve().parent.parent.parent
+
+    # Load environment variables from dev.env or prod.env
+    env_type = os.getenv("ENV", "dev")
+    env_file = project_root / f"{env_type}.env"
+
+    if env_file.exists():
+        load_dotenv(env_file)
+        print(f"Agent loaded environment from {env_file}")
+    else:
+        # Fallback to .env file if it exists
+        fallback_env = project_root / ".env"
+        if fallback_env.exists():
+            load_dotenv(fallback_env)
+            print(f"Agent loaded fallback environment from {fallback_env}")
+        else:
+            print("Agent: No environment file found, using defaults")
+
+
+# Load environment at module import
+load_environment()
 
 
 async def console_mode(log_level: str = "INFO") -> None:
@@ -75,31 +99,31 @@ def server_mode(log_level: str = "INFO") -> None:
 
     setup_logging(level=log_level)
 
-    # Get configuration from environment
-    tailscale_ip = os.getenv("TAILSCALE_IP", "127.0.0.1")
-    port = int(os.getenv("BIND_PORT", "8000"))
+    # Network-agnostic configuration
+    agent_host = os.getenv("AGENT_HOST", os.getenv("TAILSCALE_IP", "127.0.0.1"))
+    agent_port = int(os.getenv("AGENT_PORT", os.getenv("BIND_PORT", "8000")))
 
     logger.info("Starting System Telemetry Agent Server")
-    logger.info("Configuration: IP=%s, Port=%d", tailscale_ip, port)
+    logger.info("Configuration: Host=%s, Port=%d", agent_host, agent_port)
 
     print("Starting System Telemetry Agent Server...")
     print("Configuration:")
-    print(f"   • Tailscale IP: {tailscale_ip}")
-    print(f"   • Port: {port}")
+    print(f"   • Host: {agent_host}")
+    print(f"   • Port: {agent_port}")
     print()
     print("GraphQL API endpoints:")
-    print(f"   • GraphQL Playground: http://{tailscale_ip}:{port}/graphql")
-    print(f"   • Health Check: http://{tailscale_ip}:{port}/health")
-    print(f"   • API Docs: http://{tailscale_ip}:{port}/docs")
+    print(f"   • GraphQL Playground: http://{agent_host}:{agent_port}/graphql")
+    print(f"   • Health Check: http://{agent_host}:{agent_port}/health")
+    print(f"   • API Docs: http://{agent_host}:{agent_port}/docs")
     print()
-    print("Ready for remote polling via Tailscale")
+    print("Ready for remote polling")
     print("Press Ctrl+C to stop")
 
     try:
         uvicorn.run(
             app,
-            host=tailscale_ip,
-            port=port,
+            host=agent_host,
+            port=agent_port,
             reload=False,
             access_log=True,
         )

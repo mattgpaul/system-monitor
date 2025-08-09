@@ -1,0 +1,47 @@
+query GetExtendedTelemetry {
+    telemetry {
+        timestamp
+        cpu {
+            name
+            temperature
+            usage_percent
+            core_usage
+            frequency
+        }
+        gpu {
+            name
+            temperature
+            usage_percent
+            memory_used
+            memory_total
+            fan_speed
+            clock_speed
+        }
+        memory {
+            ram_used
+            ram_total
+            ram_percent
+            disk_used
+            disk_total
+            disk_percent
+        }
+        network {
+            interface
+            ip_address
+            bytes_sent
+            bytes_received
+            packets_sent
+            packets_received
+            speed_upload
+            speed_download
+        }
+        system {
+            hostname
+            os_name
+            kernel_version
+            uptime_seconds
+            user
+            boot_time
+        }
+    }
+}

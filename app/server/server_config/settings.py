@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,6 +41,7 @@ INSTALLED_APPS = [
     # Third party apps
     "rest_framework",
     "corsheaders",
+    'django_celery_beat',
     # Local apps
     "monitoring",
 ]
@@ -138,3 +140,28 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = True  # dev only
+
+# Agent polling configuration
+AGENT_POLL_INTERVAL = 1.0  # seconds
+AGENT_BASE_URL = 'http://localhost:8001'
+AGENT_TIMEOUT = 5  # seconds before giving up on agent
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_TIMEZONE = 'UTC'
+# Celery Beat (Periodic Task Scheduler) Configuration
+CELERY_BEAT_SCHEDULE = {
+    'poll-agent-telemetry': {
+        'task': 'monitoring.tasks.poll_agent_telemetry',
+        'schedule': AGENT_POLL_INTERVAL,  # Use existing setting
+        'options': {
+            'expires': AGENT_TIMEOUT,  # Use existing setting
+        }
+    },
+}
+

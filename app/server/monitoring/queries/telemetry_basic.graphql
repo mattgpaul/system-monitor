@@ -1,0 +1,18 @@
+query GetBasicTelemetry {
+    telemetry {
+        timestamp
+        cpu {
+            name
+            usage_percent
+            frequency
+        }
+        memory {
+            ram_used
+            ram_total
+            ram_percent
+        }
+        system {
+            hostname
+        }
+    }
+}

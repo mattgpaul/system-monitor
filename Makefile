@@ -11,7 +11,7 @@ help:  ## Show available commands
 venv:  ## Create virtual environment if it doesn't exist
 	test -d venv || python3 -m venv venv
 
-dev: venv  ## Install dependencies and start development environment
+dev: venv  ## Install dependencies and setup development environment
 	./venv/bin/pip install --upgrade pip
 	./venv/bin/pip install -e .[dev,agent,server]
 	@chmod +x scripts/start-dev.sh
@@ -21,11 +21,11 @@ dev-agent: venv  ## Start only the agent in development mode
 	ENV=dev ./venv/bin/python app/agent/main.py --server
 
 dev-server: venv  ## Start only the Django server in development mode
-	@if [ -f "dev.env" ]; then \
-		source dev.env && ENV=dev ./venv/bin/python app/server/manage.py runserver $$SERVER_HOST:$$SERVER_PORT; \
-	else \
-		ENV=dev ./venv/bin/python app/server/manage.py runserver; \
-	fi
+	ENV=dev ./venv/bin/python app/server/manage.py runserver; \
+
+dev-test-poll: venv  ## Test server polling task against running agent
+	@chmod +x scripts/test-poll.py
+	@ENV=dev ./venv/bin/python scripts/test-poll.py
 
 dev-test: venv  ## Run tests in development environment
 	ENV=dev ./venv/bin/python -m pytest tests/ --cov=app --cov-report=term-missing --cov-report=html

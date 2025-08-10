@@ -1,0 +1,111 @@
+
+services:
+  # Redis for Celery task queue
+  redis:
+    image: redis:7-alpine
+    container_name: system-monitor-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # InfluxDB for time-series data
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: system-monitor-influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=admin123
+      - DOCKER_INFLUXDB_INIT_ORG=system-monitor
+      - DOCKER_INFLUXDB_INIT_BUCKET=telemetry
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=my-super-secret-auth-token
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Django web application
+  web:
+    build: .
+    container_name: system-monitor-web
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - ENV=prod
+      - AGENT_HOST=${AGENT_HOST:-host.docker.internal}
+      - AGENT_PORT=${AGENT_PORT:-8000}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=my-super-secret-auth-token
+      - INFLUXDB_ORG=system-monitor
+      - INFLUXDB_BUCKET=telemetry
+    depends_on:
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+    command: ["web"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/v1/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery worker for background tasks
+  worker:
+    build: .
+    container_name: system-monitor-worker
+    restart: unless-stopped
+    environment:
+      - ENV=prod
+      - AGENT_HOST=${AGENT_HOST:-host.docker.internal}
+      - AGENT_PORT=${AGENT_PORT:-8000}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=my-super-secret-auth-token
+      - INFLUXDB_ORG=system-monitor
+      - INFLUXDB_BUCKET=telemetry
+    depends_on:
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    command: ["worker"]
+
+  # Celery beat scheduler
+  beat:
+    build: .
+    container_name: system-monitor-beat
+    restart: unless-stopped
+    environment:
+      - ENV=prod
+      - AGENT_HOST=${AGENT_HOST:-host.docker.internal}
+      - AGENT_PORT=${AGENT_PORT:-8000}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    command: ["beat"]
+
+volumes:
+  influxdb_data:
+    driver: local

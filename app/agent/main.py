@@ -1,5 +1,6 @@
 """
 Main application entry point for the telemetry agent.
+Pure environment variable configuration following 12-factor app principles.
 """
 
 import argparse
@@ -11,7 +12,6 @@ from pathlib import Path
 from typing import Any
 
 import uvicorn
-from dotenv import load_dotenv
 
 from app.agent.api import app
 from app.agent.telemetry import TelemetryCollector
@@ -20,88 +20,83 @@ from app.core.logging_config import setup_logging
 logger = logging.getLogger("telemetry_agent.main")
 
 
-# Load environment variables from dev.env or prod.env (same as server)
-def load_environment() -> None:
-    """Load environment variables using the same logic as the server."""
-    # Get the project root (three levels up from this file)
-    project_root = Path(__file__).resolve().parent.parent.parent
-
-    # Load environment variables from dev.env or prod.env
-    env_type = os.getenv("ENV", "dev")
-    env_file = project_root / f"{env_type}.env"
-
-    if env_file.exists():
-        load_dotenv(env_file)
-        print(f"Agent loaded environment from {env_file}")
-    else:
-        # Fallback to .env file if it exists
-        fallback_env = project_root / ".env"
-        if fallback_env.exists():
-            load_dotenv(fallback_env)
-            print(f"Agent loaded fallback environment from {fallback_env}")
-        else:
-            print("Agent: No environment file found, using defaults")
-
-
-# Load environment at module import
-load_environment()
-
-
 async def console_mode(log_level: str = "INFO") -> None:
-    """Run the telemetry agent."""
+    """Run console mode with live telemetry display."""
     setup_logging(level=log_level)
-    collector = await TelemetryCollector.create()
-    running = True
 
+    collector = TelemetryCollector()
+
+    # Set up signal handlers for graceful shutdown
     def signal_handler(signum: int, frame: Any) -> None:
-        nonlocal running
-        print(f"\nReceived signal {signum}, shutting down...")
-        running = False
+        print("\nShutdown signal received. Exiting...")
+        raise KeyboardInterrupt
 
-    # Set up signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    print("Starting telemetry collection...")
+    logger.info("Starting telemetry collection in console mode")
+    print("System Telemetry Agent - Console Mode")
+    print("=" * 50)
     print("Press Ctrl+C to stop")
+    print()
 
-    while running:
-        try:
-            # Use the collector
-            data = await collector.collect_all_metrics()
+    try:
+        while True:
+            try:
+                telemetry_data = await collector.collect_all()
 
-            # Simple display of key metrics
-            cpu_temp = f"{data.cpu.temperature:.1f}°C" if data.cpu.temperature else "N/A"
-            gpu_temp = (
-                f"{data.gpu.temperature:.1f}°C" if data.gpu and data.gpu.temperature else "N/A"
-            )
+                # Clear screen and display updated telemetry
+                os.system("clear" if os.name == "posix" else "cls")
+                print("System Telemetry Agent - Live Display")
+                print("=" * 50)
+                print(f"Timestamp: {telemetry_data.timestamp}")
+                print(f"Hostname: {telemetry_data.system.hostname}")
+                print()
 
-            print(
-                f"CPU: {cpu_temp} ({data.cpu.usage_percent:.1f}%) | "
-                f"GPU: {gpu_temp} | "
-                f"RAM: {data.memory.ram_percent:.1f}% | "
-                f"Disk: {data.memory.disk_percent:.1f}%"
-            )
+                print("CPU Information:")
+                print(f"  Name: {telemetry_data.cpu.name}")
+                print(f"  Usage: {telemetry_data.cpu.usage_percent:.1f}%")
+                print(f"  Frequency: {telemetry_data.cpu.frequency} MHz")
+                if telemetry_data.cpu.temperature:
+                    print(f"  Temperature: {telemetry_data.cpu.temperature}°C")
+                print()
 
-            await asyncio.sleep(1)
+                print("Memory Information:")
+                print(f"  RAM Used: {telemetry_data.memory.ram_used:.1f} GB")
+                print(f"  RAM Total: {telemetry_data.memory.ram_total:.1f} GB")
+                print(f"  RAM Usage: {telemetry_data.memory.ram_percent:.1f}%")
+                print()
 
-        except KeyboardInterrupt:
-            running = False
-        except Exception as e:
-            print(f"Error: {e}")
-            await asyncio.sleep(5)
+                if telemetry_data.gpu:
+                    print("GPU Information:")
+                    print(f"  Name: {telemetry_data.gpu.name}")
+                    print(f"  Usage: {telemetry_data.gpu.usage_percent}%")
+                    print(f"  Memory: {telemetry_data.gpu.memory_used}/{telemetry_data.gpu.memory_total} MB")
+                    if telemetry_data.gpu.temperature:
+                        print(f"  Temperature: {telemetry_data.gpu.temperature}°C")
+                    print()
 
-    print("Shutdown complete.")
+                print("Press Ctrl+C to stop")
+
+                # Wait 1 second before next update
+                await asyncio.sleep(1)
+
+            except Exception as e:
+                logger.error(f"Error collecting telemetry: {e}")
+                await asyncio.sleep(1)
+
+    except KeyboardInterrupt:
+        logger.info("Console mode shutdown requested by user")
+        print("\nExiting console mode...")
 
 
 def server_mode(log_level: str = "INFO") -> None:
     """Run GraphQL API server mode."""
-
     setup_logging(level=log_level)
 
-    # Network-agnostic configuration
-    agent_host = os.getenv("AGENT_HOST", os.getenv("TAILSCALE_IP", "127.0.0.1"))
-    agent_port = int(os.getenv("AGENT_PORT", os.getenv("BIND_PORT", "8000")))
+    # Environment variable configuration with sensible defaults
+    agent_host = os.getenv("AGENT_HOST", "127.0.0.1")
+    agent_port = int(os.getenv("AGENT_PORT", "8000"))
 
     logger.info("Starting System Telemetry Agent Server")
     logger.info("Configuration: Host=%s, Port=%d", agent_host, agent_port)

@@ -1,41 +1,22 @@
 """
 Django settings for server_config project.
-Network-agnostic configuration supporting multiple deployment scenarios.
+Pure environment variable configuration following 12-factor app principles.
 """
 
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from dev.env or prod.env
-env_type = os.getenv("ENV", "dev")
-env_file = BASE_DIR.parent.parent / f"{env_type}.env"
+# Production-ready configuration with sensible defaults
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-in-production')
 
-if env_file.exists():
-    load_dotenv(env_file)
-    print(f"Loaded environment from {env_file}")
-else:
-    # Fallback to .env file if it exists
-    fallback_env = BASE_DIR.parent.parent / ".env"
-    if fallback_env.exists():
-        load_dotenv(fallback_env)
-        print(f"Loaded fallback environment from {fallback_env}")
-    else:
-        print("No environment file found, using defaults")
+# Debug should be False by default for security
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "SECRET_KEY", "django-insecure-kw5dp4k^h0(k_-#wx8o0vgg$_ugp@w-k52&ywklq50hebl0$=#"
-)
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "True").lower() == "true"
-
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+# Allowed hosts - restrictive by default
+ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',') if host.strip()]
 
 # Application definition
 INSTALLED_APPS = [
@@ -115,6 +96,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -129,60 +111,56 @@ REST_FRAMEWORK = {
     ],
 }
 
-# CORS Configuration - environment dependent
-CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "True").lower() == "true"
-if not CORS_ALLOW_ALL_ORIGINS:
-    CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+# Network configuration with container-friendly defaults
+AGENT_HOST = os.getenv('AGENT_HOST', 'host.docker.internal')
+AGENT_PORT = os.getenv('AGENT_PORT', '8000')
+SERVER_HOST = os.getenv('SERVER_HOST', '0.0.0.0')
+SERVER_PORT = os.getenv('SERVER_PORT', '8001')
 
-# Network-agnostic agent configuration
-AGENT_HOST = os.getenv("AGENT_HOST", "127.0.0.1")
-AGENT_PORT = os.getenv("AGENT_PORT", "8001")
-SERVER_HOST = os.getenv("SERVER_HOST", "127.0.0.1")
-SERVER_PORT = os.getenv("SERVER_PORT", "8000")
+# Build agent URL
+AGENT_BASE_URL = os.getenv('AGENT_BASE_URL', f'http://{AGENT_HOST}:{AGENT_PORT}')
 
 # Agent polling configuration
-AGENT_POLL_INTERVAL = float(os.getenv("AGENT_POLL_INTERVAL", "1.0"))
-AGENT_TIMEOUT = float(os.getenv("AGENT_TIMEOUT", "5.0"))
+AGENT_POLL_INTERVAL = float(os.getenv('AGENT_POLL_INTERVAL', '1.0'))
+AGENT_TIMEOUT = float(os.getenv('AGENT_TIMEOUT', '10.0'))
 
-# Build agent URL with multiple fallback strategies
-AGENT_BASE_URL = os.getenv("AGENT_BASE_URL")
-if not AGENT_BASE_URL:
-    # Strategy 1: Build from AGENT_HOST + AGENT_PORT
-    AGENT_BASE_URL = f"http://{AGENT_HOST}:{AGENT_PORT}"
-
-# Legacy support for existing deployments
-TAILSCALE_IP = os.getenv("TAILSCALE_IP", AGENT_HOST)  # Fallback to AGENT_HOST
-
-# Celery Configuration
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+# Celery configuration with container-friendly defaults
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_TIMEZONE = "UTC"
 
-# Celery Beat (Periodic Task Scheduler) Configuration
+# Celery Beat Schedule
 CELERY_BEAT_SCHEDULE = {
-    "poll-agent-telemetry": {
-        "task": "monitoring.tasks.poll_agent_telemetry",
-        "schedule": AGENT_POLL_INTERVAL,
-        "options": {
-            "expires": AGENT_TIMEOUT,
+    'poll-agent-telemetry': {
+        'task': 'monitoring.tasks.poll_agent_telemetry',
+        'schedule': AGENT_POLL_INTERVAL,
+        'options': {
+            'expires': AGENT_TIMEOUT,
         },
     },
 }
+
+# CORS configuration
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
+CORS_ALLOWED_ORIGINS_ENV = os.getenv('CORS_ALLOWED_ORIGINS', '')
+if CORS_ALLOWED_ORIGINS_ENV:
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ALLOWED_ORIGINS_ENV.split(',')]
+else:
+    CORS_ALLOWED_ORIGINS = []
 
 # Security settings for production
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
-    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))  # 1 year
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-    # Only enable these if using HTTPS
     if os.getenv("USE_HTTPS", "False").lower() == "true":
         SECURE_SSL_REDIRECT = True
         SESSION_COOKIE_SECURE = True

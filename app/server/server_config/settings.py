@@ -112,8 +112,8 @@ REST_FRAMEWORK = {
 }
 
 # Network configuration with container-friendly defaults
-AGENT_HOST = os.getenv('AGENT_HOST', 'host.docker.internal')
-AGENT_PORT = os.getenv('AGENT_PORT', '8000')
+AGENT_HOST = os.getenv('AGENT_HOST', 'host.docker.internal')  # Docker-friendly default
+AGENT_PORT = int(os.getenv('AGENT_PORT', '8000'))
 SERVER_HOST = os.getenv('SERVER_HOST', '0.0.0.0')
 SERVER_PORT = os.getenv('SERVER_PORT', '8001')
 

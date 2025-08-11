@@ -113,7 +113,6 @@ def server_mode(log_level: str = "INFO") -> None:
     print(f"   • API Docs: http://{agent_host}:{agent_port}/docs")
     print()
     
-    # Show network configuration options like other services do
     if agent_host == "127.0.0.1":
         print("Network Configuration:")
         print("   • Currently: Local access only (127.0.0.1)")

@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   redis:
@@ -40,33 +39,38 @@ services:
   web:
     build: .
     restart: unless-stopped
-    ports:
-      - "${SERVER_PORT:-8001}:8000"
+    command: ["web"]
+    network_mode: "host"
     environment:
       # Django configuration
       - DEBUG=${DEBUG:-False}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-change-in-production}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
       
-      # Database (using SQLite by default, can override)
+      # Database configuration
       - DATABASE_URL=${DATABASE_URL:-sqlite:///db.sqlite3}
       
-      # Redis configuration
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      # Redis configuration - uses localhost since we're on host network
+      - REDIS_URL=${REDIS_URL:-redis://localhost:6379/0}
       
-      # InfluxDB configuration  
-      - INFLUXDB_URL=${INFLUXDB_URL:-http://influxdb:8086}
+      # InfluxDB configuration - uses localhost since we're on host network
+      - INFLUXDB_URL=${INFLUXDB_URL:-http://localhost:8086}
       - INFLUXDB_TOKEN=${INFLUXDB_TOKEN:-dev-token-change-in-production}
       - INFLUXDB_ORG=${INFLUXDB_ORG:-system-monitor}
       - INFLUXDB_BUCKET=${INFLUXDB_BUCKET:-telemetry}
       
-      # Agent configuration - uses Docker networking by default
-      - AGENT_HOST=${AGENT_HOST:-host.docker.internal}
+      # Agent configuration - can now reach localhost agent directly
+      - AGENT_HOST=${AGENT_HOST:-127.0.0.1}
       - AGENT_PORT=${AGENT_PORT:-8000}
+      - AGENT_BASE_URL=${AGENT_BASE_URL}
       
-      # Celery configuration
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      # Agent polling configuration
+      - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-1.0}
+      - AGENT_TIMEOUT=${AGENT_TIMEOUT:-10.0}
+      
+      # Celery configuration - uses localhost since we're on host network
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://localhost:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://localhost:6379/0}
     
     depends_on:
       redis:
@@ -76,12 +80,6 @@ services:
     
     volumes:
       - ./logs:/app/logs
-    
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 volumes:
   redis_data:

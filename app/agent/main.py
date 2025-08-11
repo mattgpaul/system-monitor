@@ -8,7 +8,7 @@ import asyncio
 import logging
 import os
 import signal
-from pathlib import Path
+import socket
 from typing import Any
 
 import uvicorn
@@ -91,26 +91,44 @@ async def console_mode(log_level: str = "INFO") -> None:
 
 
 def server_mode(log_level: str = "INFO") -> None:
-    """Run GraphQL API server mode."""
+    """Run GraphQL API server mode with InfluxDB-style network configuration."""
     setup_logging(level=log_level)
-
-    # Environment variable configuration with sensible defaults
+    
+    hostname = socket.gethostname()
+    
+    # Default to localhost like InfluxDB/Grafana
     agent_host = os.getenv("AGENT_HOST", "127.0.0.1")
     agent_port = int(os.getenv("AGENT_PORT", "8000"))
 
-    logger.info("Starting System Telemetry Agent Server")
-    logger.info("Configuration: Host=%s, Port=%d", agent_host, agent_port)
+    logger.info(f"Starting System Telemetry Agent Server on {hostname}")
+    logger.info(f"Binding to: {agent_host}:{agent_port}")
 
-    print("Starting System Telemetry Agent Server...")
-    print("Configuration:")
-    print(f"   • Host: {agent_host}")
-    print(f"   • Port: {agent_port}")
+    print(f"Starting System Telemetry Agent Server...")
+    print(f"Machine: {hostname}")
+    print(f"Listening on: {agent_host}:{agent_port}")
     print()
     print("GraphQL API endpoints:")
     print(f"   • GraphQL Playground: http://{agent_host}:{agent_port}/graphql")
     print(f"   • Health Check: http://{agent_host}:{agent_port}/health")
     print(f"   • API Docs: http://{agent_host}:{agent_port}/docs")
     print()
+    
+    # Show network configuration options like other services do
+    if agent_host == "127.0.0.1":
+        print("Network Configuration:")
+        print("   • Currently: Local access only (127.0.0.1)")
+        print("   • For network access: AGENT_HOST=0.0.0.0 python -m app.agent.main --server")
+        print("   • For specific IP: AGENT_HOST=192.168.1.100 python -m app.agent.main --server")
+        print()
+    elif agent_host == "0.0.0.0":
+        print("Network Configuration:")
+        print("   • Currently: Accepting connections from any network interface")
+        print()
+    else:
+        print("Network Configuration:")
+        print(f"   • Currently: Binding to specific interface ({agent_host})")
+        print()
+    
     print("Ready for remote polling")
     print("Press Ctrl+C to stop")
 
